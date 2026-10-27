@@ -1,76 +1,23 @@
 name: tech_dictionary
-description: "Professional Tech Dictionary Application for learning technical terms."
+description: "Tech Dictionary - learn IT and computing terms with quizzes, spaced repetition and progress tracking."
 publish_to: 'none'
-version: 1.0.0
+version: 1.0.0+1
 
 environment:
   sdk: ^3.9.2
 
 dependencies:
+  cloud_firestore: ^7.1.0
+  firebase_auth: ^7.0.1
+  firebase_core: ^5.1.0
+  fl_chart: ^1.3.0
   flutter:
     sdk: flutter
+  flutter_tts: ^4.2.5
+  pdf: ^3.13.1
   provider: ^6.1.5+1
-  google_fonts: ^6.2.0
-  shared_preferences: ^2.2.2
-  flutter_localizations:
-    sdk: flutter
-  flutter_svg: ^2.0.10
-  firebase_core: ^3.8.0
-  firebase_auth: ^5.3.0
-  cloud_firestore: ^5.4.0
-  firebase_storage: ^12.3.0
-  google_sign_in: ^6.2.1
-  
-  # Quiz ve Test
-  # Kendi implementasyonumuz
-  
-  # Gamification
-  # Kendi implementasyonumuz
-  
-  # Grafikler ve İstatistikler
-  fl_chart: ^0.66.0
-  
-  # Offline Çalışma
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  connectivity_plus: ^5.0.2
-  workmanager: ^0.5.2
-  
-  # AI/ML (Basit implementasyon)
-  # Kendi algoritmamız
-  
-  # Sesli Telaffuz
-  flutter_tts: ^4.0.0
-  speech_to_text: ^7.0.0
-  
-  # Görsel İçerik
-  image_picker: ^1.0.7
-  cached_network_image: ^3.3.1
-  
-  # Export/Import
-  pdf: ^3.10.7
-  path_provider: ^2.1.2
-  
-  # Sosyal Özellikler
-  share_plus: ^7.2.1
-  cross_file: ^0.3.4
-  
-  # Bildirimler
-  firebase_messaging: ^15.2.10
-  flutter_local_notifications: ^16.3.0
-  
-  # Güvenlik
-  local_auth: ^2.1.7
-  encrypt: ^5.0.3
-  
-  # Gelişmiş Arama
-  fuzzy: ^0.5.1
-  
-  # Animasyonlar
-  lottie: ^3.0.0
-  
-  # Haptic Feedback
-  vibration: ^1.8.4
+  share_plus: ^13.3.1
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   flutter_test:
@@ -79,3 +26,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Roboto is bundled so the web build does not download fonts at runtime.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700

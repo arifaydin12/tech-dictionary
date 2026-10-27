@@ -1,70 +1,55 @@
 rules_version = '2';
 
+// Security rules for Tech Dictionary (Firebase mode).
+// Deploy with: firebase deploy --only firestore:rules
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper functions - Kullanıcı kontrolü
+
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
-    
-    // Users collection - Kullanıcı profilleri
-    match /users/{userId} {
-      // Herkes kendi profilini okuyabilir, sadece kendisi yazabilir/güncelleyebilir
-      allow read: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
-      
-      // User Settings / Preferences - Kullanıcı ayarları
-      match /settings/{document=**} {
-        allow read: if isSignedIn() && isOwner(userId);
-        allow write: if isSignedIn() && isOwner(userId);
-      }
-      
-      // User Words - Kullanıcının kelimeleri
-      match /words/{wordId} {
-        allow read: if isSignedIn() && isOwner(userId);
-        allow create: if isSignedIn() && isOwner(userId);
-        allow update: if isSignedIn() && isOwner(userId);
-        allow delete: if isSignedIn() && isOwner(userId);
-      }
-      
-      // User Favorites - Kullanıcının favorileri
-      match /favorites/{favoriteId} {
-        allow read: if isSignedIn() && isOwner(userId);
-        allow create: if isSignedIn() && isOwner(userId);
-        allow update: if isSignedIn() && isOwner(userId);
-        allow delete: if isSignedIn() && isOwner(userId);
-      }
-      
-      // User Statistics - Kullanıcı istatistikleri
-      match /statistics/{document=**} {
-        allow read: if isSignedIn() && isOwner(userId);
-        allow write: if isSignedIn() && isOwner(userId);
-      }
+
+    // Per-user private data, for example users/{uid}/private/progress.
+    match /users/{userId}/{document=**} {
+      allow read, write: if isUser(userId);
     }
-    
-    // Public Words - Herkese açık kelimeler (opsiyonel)
-    // Tüm kullanıcılar okuyabilir, sadece admin yazabilir
-    match /public_words/{wordId} {
+
+    // Community words: everyone who is signed in can read them, and only the
+    // author can create, change or delete a word.
+    match /words/{wordId} {
       allow read: if isSignedIn();
-      // Admin kontrolü için custom claim kullanabilirsiniz
-      // allow write: if isSignedIn() && request.auth.token.admin == true;
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid;
+      allow update: if isUser(resource.data.authorId)
+        && request.resource.data.authorId == resource.data.authorId;
+      allow delete: if isUser(resource.data.authorId);
     }
-    
-    // Categories - Kategoriler (opsiyonel)
-    match /categories/{categoryId} {
+
+    // Leaderboard: readable by signed-in users; everyone writes only their own row.
+    match /rankings/{userId} {
       allow read: if isSignedIn();
-      // Admin kontrolü
-      // allow write: if isSignedIn() && request.auth.token.admin == true;
+      allow write: if isUser(userId);
     }
-    
-    // Tüm diğer documentleri engelle
+
+    // Correction suggestions: visible to the proposer and the word's author.
+    // Only the author may resolve a suggestion, and only its status may change.
+    match /corrections/{correctionId} {
+      allow create: if isSignedIn()
+        && request.resource.data.proposerId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow read: if isSignedIn()
+        && (resource.data.ownerId == request.auth.uid
+            || resource.data.proposerId == request.auth.uid);
+      allow update: if isUser(resource.data.ownerId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    // Everything else is denied.
     match /{document=**} {
       allow read, write: if false;
     }

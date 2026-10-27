@@ -1,15 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- İnternet izni (Firebase ve Google Sign-In için gerekli) -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Account erişim izni (Google Sign-In için) -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
-    
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="Bilişim Sözlüğü"
+        android:label="Tech Dictionary"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:supportsRtl="true"
-        android:usesCleartextTraffic="false">
+        android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"

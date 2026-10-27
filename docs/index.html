@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    The base href is replaced by the value of the `--base-href` argument given
+    to `flutter build web` (for example /tech-dictionary/ on GitHub Pages).
+  -->
+  <base href="/tech-dictionary/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Tech Dictionary: learn IT and computing terms with quizzes, spaced repetition and progress tracking.">
+  <meta name="theme-color" content="#3F5FD9">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Tech Dictionary">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Tech Dictionary</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; height: 100%; background: #f6f7fb; }
+    @media (prefers-color-scheme: dark) { html, body { background: #121318; color: #e3e2e9; } }
+    #loading {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      font-family: Roboto, Arial, sans-serif; color: #44464f;
+    }
+    @media (prefers-color-scheme: dark) { #loading { color: #c5c6d0; } }
+    #loading .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 4px solid rgba(63, 95, 217, 0.25); border-top-color: #3f5fd9;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Hide the loading indicator once Flutter has attached its view. */
+    body:has(flt-glass-pane) #loading { display: none; }
+  </style>
+</head>
+<body>
+  <div id="loading" role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <div>Loading Tech Dictionary…</div>
+  </div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

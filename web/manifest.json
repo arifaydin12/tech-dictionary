@@ -1,12 +1,12 @@
 {
-    "name": "flutter_application_1",
-    "short_name": "flutter_application_1",
+    "name": "Tech Dictionary",
+    "short_name": "Tech Dictionary",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F6F7FB",
+    "theme_color": "#3F5FD9",
+    "description": "Learn IT and computing terms with quizzes, spaced repetition and progress tracking.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

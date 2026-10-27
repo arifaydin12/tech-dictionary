@@ -1,250 +1,211 @@
-import '../models/badge.dart';
-import '../models/user_ranking.dart';
-import '../services/firebase_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+
+import '../models/user_progress.dart';
+import '../utils/dates.dart';
+
+/// A badge that unlocks when [value] reaches [target].
+class BadgeDef {
+  const BadgeDef({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.target,
+    required this.value,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final IconData icon;
+  final int target;
+  final int Function(UserProgress progress) value;
+}
+
+/// XP levels, streaks and badges.
 class GamificationService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseService _firebaseService = FirebaseService();
+  const GamificationService();
 
-  // Varsayılan rozetler
-  static final List<Badge> defaultBadges = [
-    Badge(
-      id: 'first_word',
-      name: 'İlk Adım',
-      description: 'İlk kelimenizi eklediniz!',
-      icon: '🎯',
-      type: BadgeType.wordCount,
-      requiredValue: 1,
+  static final List<BadgeDef> badges = [
+    BadgeDef(
+      id: 'first_steps',
+      title: 'First Steps',
+      description: 'Answer your first question.',
+      icon: Icons.flag_outlined,
+      target: 1,
+      value: (p) => p.totalReviews,
     ),
-    Badge(
-      id: 'word_collector_10',
-      name: 'Kelime Toplayıcı',
-      description: '10 kelime eklediniz!',
-      icon: '📚',
-      type: BadgeType.wordCount,
-      requiredValue: 10,
+    BadgeDef(
+      id: 'bookworm',
+      title: 'Bookworm',
+      description: 'Answer 100 questions.',
+      icon: Icons.menu_book_outlined,
+      target: 100,
+      value: (p) => p.totalReviews,
     ),
-    Badge(
-      id: 'word_collector_50',
-      name: 'Kelime Ustası',
-      description: '50 kelime eklediniz!',
-      icon: '📖',
-      type: BadgeType.wordCount,
-      requiredValue: 50,
+    BadgeDef(
+      id: 'scholar',
+      title: 'Scholar',
+      description: 'Answer 500 questions.',
+      icon: Icons.school_outlined,
+      target: 500,
+      value: (p) => p.totalReviews,
     ),
-    Badge(
-      id: 'word_collector_100',
-      name: 'Kelime Şampiyonu',
-      description: '100 kelime eklediniz!',
-      icon: '🏆',
-      type: BadgeType.wordCount,
-      requiredValue: 100,
+    BadgeDef(
+      id: 'quiz_rookie',
+      title: 'Quiz Rookie',
+      description: 'Finish 5 practice sessions.',
+      icon: Icons.quiz_outlined,
+      target: 5,
+      value: (p) => p.quizzes.length,
     ),
-    Badge(
-      id: 'quiz_master',
-      name: 'Quiz Ustası',
-      description: '10 quiz tamamladınız!',
-      icon: '🧠',
-      type: BadgeType.quizScore,
-      requiredValue: 10,
+    BadgeDef(
+      id: 'perfectionist',
+      title: 'Perfectionist',
+      description: 'Finish a session of 5+ questions with no mistakes.',
+      icon: Icons.verified_outlined,
+      target: 1,
+      value: (p) =>
+          p.quizzes.where((q) => q.total >= 5 && q.correct == q.total).length,
     ),
-    Badge(
-      id: 'perfect_score',
-      name: 'Mükemmel Skor',
-      description: 'Bir quiz\'de %100 başarı!',
-      icon: '💯',
-      type: BadgeType.quizScore,
-      requiredValue: 100,
+    BadgeDef(
+      id: 'streak_3',
+      title: 'On a Roll',
+      description: 'Practise 3 days in a row.',
+      icon: Icons.local_fire_department_outlined,
+      target: 3,
+      value: (p) => longestStreak(p.reviewsByDay),
     ),
-    Badge(
+    BadgeDef(
       id: 'streak_7',
-      name: 'Haftalık Seri',
-      description: '7 gün üst üste aktif!',
-      icon: '🔥',
-      type: BadgeType.streak,
-      requiredValue: 7,
+      title: 'Week Warrior',
+      description: 'Practise 7 days in a row.',
+      icon: Icons.whatshot_outlined,
+      target: 7,
+      value: (p) => longestStreak(p.reviewsByDay),
     ),
-    Badge(
-      id: 'streak_30',
-      name: 'Aylık Seri',
-      description: '30 gün üst üste aktif!',
-      icon: '⭐',
-      type: BadgeType.streak,
-      requiredValue: 30,
+    BadgeDef(
+      id: 'learner',
+      title: 'Quick Learner',
+      description: 'Learn 25 terms (two correct answers in a row).',
+      icon: Icons.lightbulb_outline,
+      target: 25,
+      value: (p) => p.cards.values.where((c) => c.isLearned).length,
     ),
-    Badge(
-      id: 'corrector',
-      name: 'Düzeltme Ustası',
-      description: '5 düzeltme önerisi gönderdiniz!',
-      icon: '✏️',
-      type: BadgeType.correction,
-      requiredValue: 5,
+    BadgeDef(
+      id: 'master',
+      title: 'Term Master',
+      description: 'Master 5 terms (review interval of 3+ weeks).',
+      icon: Icons.workspace_premium_outlined,
+      target: 5,
+      value: (p) => p.cards.values.where((c) => c.isMastered).length,
     ),
-    Badge(
-      id: 'level_10',
-      name: 'Seviye 10',
-      description: '10. seviyeye ulaştınız!',
-      icon: '🎖️',
-      type: BadgeType.special,
-      requiredValue: 10,
+    BadgeDef(
+      id: 'contributor',
+      title: 'Contributor',
+      description: 'Add your first term to the dictionary.',
+      icon: Icons.edit_note,
+      target: 1,
+      value: (p) => p.wordsAdded,
+    ),
+    BadgeDef(
+      id: 'author',
+      title: 'Author',
+      description: 'Add 5 terms to the dictionary.',
+      icon: Icons.history_edu_outlined,
+      target: 5,
+      value: (p) => p.wordsAdded,
+    ),
+    BadgeDef(
+      id: 'collector',
+      title: 'Collector',
+      description: 'Mark 10 favourites.',
+      icon: Icons.favorite_border,
+      target: 10,
+      value: (p) => p.favourites.length,
+    ),
+    BadgeDef(
+      id: 'level_5',
+      title: 'Level 5',
+      description: 'Reach level 5.',
+      icon: Icons.military_tech_outlined,
+      target: 5,
+      value: (p) => levelForXp(p.xp),
     ),
   ];
 
-  /// Kullanıcı ilerlemesini al
-  Future<UserProgress> getUserProgress(String userId) async {
-    try {
-      final doc = await _firestore
-          .collection('userProgress')
-          .doc(userId)
-          .get();
-      
-      if (doc.exists) {
-        return UserProgress.fromFirestore(doc.data()!);
+  static BadgeDef? badgeById(String id) {
+    for (final b in badges) {
+      if (b.id == id) return b;
+    }
+    return null;
+  }
+
+  /// Level for a total XP amount: level n starts at `60 * (n - 1)^2` XP.
+  static int levelForXp(int xp) => math.sqrt(math.max(0, xp) / 60).floor() + 1;
+
+  static int xpForLevel(int level) => 60 * (level - 1) * (level - 1);
+
+  /// Progress through the current level in the range 0..1.
+  static double levelProgress(int xp) {
+    final level = levelForXp(xp);
+    final start = xpForLevel(level);
+    final end = xpForLevel(level + 1);
+    return ((xp - start) / (end - start)).clamp(0.0, 1.0);
+  }
+
+  /// Consecutive active days ending today. A streak stays alive until the end
+  /// of the day after the last activity, so it is not lost before the learner
+  /// had a chance to practise today.
+  static int currentStreak(Map<String, int> activityByDay, DateTime now) {
+    bool active(DateTime d) => (activityByDay[Dates.key(d)] ?? 0) > 0;
+
+    var day = Dates.dayStart(now);
+    if (!active(day)) day = Dates.addDays(day, -1);
+    var streak = 0;
+    while (active(day)) {
+      streak++;
+      day = Dates.addDays(day, -1);
+    }
+    return streak;
+  }
+
+  static int longestStreak(Map<String, int> activityByDay) {
+    final days =
+        activityByDay.entries
+            .where((e) => e.value > 0)
+            .map((e) => Dates.parseKey(e.key))
+            .whereType<DateTime>()
+            .toList()
+          ..sort();
+    var longest = 0;
+    var run = 0;
+    DateTime? previous;
+    for (final day in days) {
+      if (previous != null && Dates.addDays(previous, 1) == day) {
+        run++;
       } else {
-        // Yeni kullanıcı için varsayılan ilerleme oluştur
-        final progress = UserProgress(userId: userId);
-        await saveUserProgress(progress);
-        return progress;
+        run = 1;
       }
-    } catch (e) {
-      print('İlerleme alma hatası: $e');
-      return UserProgress(userId: userId);
+      longest = math.max(longest, run);
+      previous = day;
     }
+    return longest;
   }
 
-  /// Kullanıcı ilerlemesini kaydet
-  Future<void> saveUserProgress(UserProgress progress) async {
-    try {
-      await _firestore
-          .collection('userProgress')
-          .doc(progress.userId)
-          .set(progress.toFirestore());
-    } catch (e) {
-      print('İlerleme kaydetme hatası: $e');
-    }
-  }
-
-  /// Kelime eklendiğinde XP ve rozet kontrolü
-  Future<void> onWordAdded(String userId) async {
-    final progress = await getUserProgress(userId);
-    progress.wordsAdded++;
-    progress.addXP(10); // Her kelime için 10 XP
-    progress.updateStreak();
-    
-    await saveUserProgress(progress);
-    await checkBadges(progress);
-  }
-
-  /// Quiz tamamlandığında XP ve rozet kontrolü
-  Future<void> onQuizCompleted(String userId, int score, double accuracy) async {
-    final progress = await getUserProgress(userId);
-    progress.quizzesCompleted++;
-    progress.addXP(score ~/ 10); // Skorun 10'da biri kadar XP
-    progress.updateStreak();
-    
-    await saveUserProgress(progress);
-    await checkBadges(progress);
-    
-    // Mükemmel skor rozeti kontrolü
-    if (accuracy >= 1.0) {
-      await unlockBadge(userId, 'perfect_score');
-    }
-  }
-
-  /// Rozet kontrolü ve kazanma
-  Future<void> checkBadges(UserProgress progress) async {
-    // Kelime sayısı rozetleri
-    for (final badge in defaultBadges.where((b) => b.type == BadgeType.wordCount)) {
-      if (progress.wordsAdded >= badge.requiredValue &&
-          !progress.unlockedBadges.contains(badge.id)) {
-        await unlockBadge(progress.userId, badge.id);
+  /// Unlocks every badge whose target has been reached and returns the badges
+  /// that were unlocked by this call.
+  List<BadgeDef> unlockEarned(UserProgress progress, DateTime now) {
+    final unlocked = <BadgeDef>[];
+    for (final badge in badges) {
+      if (progress.badges.containsKey(badge.id)) continue;
+      if (badge.value(progress) >= badge.target) {
+        progress.badges[badge.id] = now;
+        unlocked.add(badge);
       }
     }
-    
-    // Quiz rozetleri
-    for (final badge in defaultBadges.where((b) => b.type == BadgeType.quizScore)) {
-      if (badge.id == 'quiz_master' &&
-          progress.quizzesCompleted >= badge.requiredValue &&
-          !progress.unlockedBadges.contains(badge.id)) {
-        await unlockBadge(progress.userId, badge.id);
-      }
-    }
-    
-    // Seri rozetleri
-    for (final badge in defaultBadges.where((b) => b.type == BadgeType.streak)) {
-      if (progress.currentStreak >= badge.requiredValue &&
-          !progress.unlockedBadges.contains(badge.id)) {
-        await unlockBadge(progress.userId, badge.id);
-      }
-    }
-    
-    // Seviye rozetleri
-    for (final badge in defaultBadges.where((b) => b.type == BadgeType.special)) {
-      if (badge.id == 'level_10' &&
-          progress.level >= badge.requiredValue &&
-          !progress.unlockedBadges.contains(badge.id)) {
-        await unlockBadge(progress.userId, badge.id);
-      }
-    }
-  }
-
-  /// Rozet kazan
-  Future<void> unlockBadge(String userId, String badgeId) async {
-    try {
-      final badge = defaultBadges.firstWhere((b) => b.id == badgeId);
-      final unlockedBadge = Badge(
-        id: badge.id,
-        name: badge.name,
-        description: badge.description,
-        icon: badge.icon,
-        type: badge.type,
-        requiredValue: badge.requiredValue,
-        unlockedAt: DateTime.now(),
-      );
-      
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('badges')
-          .doc(badgeId)
-          .set(unlockedBadge.toFirestore());
-      
-      // Kullanıcı ilerlemesine ekle
-      final progress = await getUserProgress(userId);
-      if (!progress.unlockedBadges.contains(badgeId)) {
-        progress.unlockedBadges.add(badgeId);
-        progress.addXP(50); // Rozet için bonus XP
-        await saveUserProgress(progress);
-      }
-      
-      print('✓ Rozet kazanıldı: ${badge.name}');
-    } catch (e) {
-      print('Rozet kazanma hatası: $e');
-    }
-  }
-
-  /// Kullanıcının tüm rozetlerini al
-  Future<List<Badge>> getUserBadges(String userId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('badges')
-          .get();
-      
-      return snapshot.docs
-          .map((doc) => Badge.fromFirestore(doc.data()))
-          .toList();
-    } catch (e) {
-      print('Rozet alma hatası: $e');
-      return [];
-    }
-  }
-
-  /// Tüm rozetleri al
-  List<Badge> getAllBadges() {
-    return defaultBadges;
+    return unlocked;
   }
 }
-

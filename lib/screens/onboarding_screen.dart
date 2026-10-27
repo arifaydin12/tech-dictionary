@@ -1,5 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/settings_provider.dart';
+import '../ui/widgets.dart';
+
+class _Page {
+  const _Page(this.icon, this.title, this.text);
+
+  final IconData icon;
+  final String title;
+  final String text;
+}
+
+/// Three-page introduction shown on first launch.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -8,103 +21,156 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _controller = PageController();
-  int _currentPage = 0;
-
-  final List<_OnboardingPage> _pages = [
-    _OnboardingPage(
-      icon: Icons.lightbulb_outline,
-      title: 'Hoşgeldiniz!',
-      description: 'Bu uygulama ile kelimeleri kolayca yönetin.',
+  static const _pages = [
+    _Page(
+      Icons.menu_book_rounded,
+      'Learn the language of IT',
+      'Browse more than 130 clearly explained terms across hardware, '
+          'networking, security, programming, AI and more.',
     ),
-    _OnboardingPage(
-      icon: Icons.search,
-      title: 'Akıllı Arama',
-      description: 'Kelimeleri hızlıca bulun ve filtreleyin.',
+    _Page(
+      Icons.psychology_alt_outlined,
+      'Practise the smart way',
+      'Multiple choice, flashcards and typing quizzes use spaced repetition '
+          'to bring each term back right before you would forget it.',
     ),
-    _OnboardingPage(
-      icon: Icons.bar_chart,
-      title: 'İstatistikler',
-      description: 'Kullanım verilerinizi analiz edin.',
+    _Page(
+      Icons.emoji_events_outlined,
+      'Track your progress',
+      'Build a daily streak, earn badges and XP, watch your statistics grow '
+          'and add your own terms for others to learn.',
     ),
   ];
 
-  void _nextPage() {
-    if (_currentPage < _pages.length - 1) {
-      _controller.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+  final _controller = PageController();
+  int _index = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _finish() => context.read<SettingsProvider>().completeOnboarding();
+
+  void _next() {
+    if (_index == _pages.length - 1) {
+      _finish();
     } else {
-      Navigator.pushReplacementNamed(context, '/login');
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final last = _index == _pages.length - 1;
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _controller,
-                itemCount: _pages.length,
-                onPageChanged: (index) => setState(() => _currentPage = index),
-                itemBuilder: (context, index) {
-                  final page = _pages[index];
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeInOut,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(page.icon, size: 80, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(height: 32),
-                        Text(page.title, style: Theme.of(context).textTheme.displayMedium),
-                        const SizedBox(height: 16),
-                        Text(page.description, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(_pages.length, (index) {
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == index ? 24 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _currentPage == index ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(4),
+        child: ContentWidth(
+          maxWidth: 560,
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: TextButton(
+                    onPressed: _finish,
+                    child: const Text('Skip'),
                   ),
-                );
-              }),
-            ),
-            const SizedBox(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _nextPage,
-                  child: Text(_currentPage < _pages.length - 1 ? 'İleri' : 'Başla'),
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-          ],
+              Expanded(
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: _pages.length,
+                  onPageChanged: (i) => setState(() => _index = i),
+                  itemBuilder: (context, i) {
+                    final page = _pages[i];
+                    return Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 24),
+                            Container(
+                              width: 132,
+                              height: 132,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: ExcludeSemantics(
+                                child: Icon(
+                                  page.icon,
+                                  size: 64,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            Text(
+                              page.title,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              page.text,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Semantics(
+                label: 'Page ${_index + 1} of ${_pages.length}',
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (var i = 0; i < _pages.length; i++)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: i == _index ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: i == _index
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _next,
+                    child: Text(last ? 'Get started' : 'Next'),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-class _OnboardingPage {
-  final IconData icon;
-  final String title;
-  final String description;
-  const _OnboardingPage({required this.icon, required this.title, required this.description});
 }
