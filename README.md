@@ -2,7 +2,7 @@
 
 A Flutter app for learning IT and computing terms. Browse a built-in dictionary of 140 clearly explained terms, practise with three quiz modes that use spaced repetition, earn XP, badges and streaks, and add your own terms.
 
-**Live demo:** https://vaas125.github.io/tech-dictionary/ (runs entirely in the browser, no sign-in or Firebase needed)
+**Live demo:** https://arifaydin12.github.io/tech-dictionary/ (runs entirely in the browser, no sign-in or Firebase needed)
 
 ![Home screen](screenshots/screenshot.png)
 
@@ -148,4 +148,4 @@ Four repository interfaces separate the app from its storage: `AuthRepository`, 
 
 ## License
 
-[MIT](LICENSE) © Arif Enes
+[MIT](LICENSE) © Arif Enes Aydin
