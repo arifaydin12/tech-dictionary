@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions - Kullanıcı kontrolü
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Users collection - Kullanıcı profilleri
+    match /users/{userId} {
+      // Herkes kendi profilini okuyabilir, sadece kendisi yazabilir/güncelleyebilir
+      allow read: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+      
+      // User Settings / Preferences - Kullanıcı ayarları
+      match /settings/{document=**} {
+        allow read: if isSignedIn() && isOwner(userId);
+        allow write: if isSignedIn() && isOwner(userId);
+      }
+      
+      // User Words - Kullanıcının kelimeleri
+      match /words/{wordId} {
+        allow read: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isOwner(userId);
+        allow update: if isSignedIn() && isOwner(userId);
+        allow delete: if isSignedIn() && isOwner(userId);
+      }
+      
+      // User Favorites - Kullanıcının favorileri
+      match /favorites/{favoriteId} {
+        allow read: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isOwner(userId);
+        allow update: if isSignedIn() && isOwner(userId);
+        allow delete: if isSignedIn() && isOwner(userId);
+      }
+      
+      // User Statistics - Kullanıcı istatistikleri
+      match /statistics/{document=**} {
+        allow read: if isSignedIn() && isOwner(userId);
+        allow write: if isSignedIn() && isOwner(userId);
+      }
+    }
+    
+    // Public Words - Herkese açık kelimeler (opsiyonel)
+    // Tüm kullanıcılar okuyabilir, sadece admin yazabilir
+    match /public_words/{wordId} {
+      allow read: if isSignedIn();
+      // Admin kontrolü için custom claim kullanabilirsiniz
+      // allow write: if isSignedIn() && request.auth.token.admin == true;
+    }
+    
+    // Categories - Kategoriler (opsiyonel)
+    match /categories/{categoryId} {
+      allow read: if isSignedIn();
+      // Admin kontrolü
+      // allow write: if isSignedIn() && request.auth.token.admin == true;
+    }
+    
+    // Tüm diğer documentleri engelle
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
